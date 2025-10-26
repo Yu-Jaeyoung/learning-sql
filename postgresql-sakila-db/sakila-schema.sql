@@ -1074,3 +1074,63 @@ BEGIN
   RETURN v_customer_id;
 END;
 $$;
+
+
+
+------------------------------
+------------------------------
+-- 수동으로 삽입된 데이터의 최댓값을 카운터(시퀀스)에 알려주어, 
+-- 향후 발생할 Primary Key 중복 오류를 방지
+
+SELECT setval('country_country_id_seq', (
+  SELECT MAX(country_id)
+    FROM country
+                                        ));
+SELECT setval('city_city_id_seq', (
+  SELECT MAX(city_id)
+    FROM city
+                                  ));
+SELECT setval('address_address_id_seq', (
+  SELECT MAX(address_id)
+    FROM address
+                                        ));
+SELECT setval('actor_actor_id_seq', (
+  SELECT MAX(actor_id)
+    FROM actor
+                                    ));
+SELECT setval('category_category_id_seq', (
+  SELECT MAX(category_id)
+    FROM category
+                                          ));
+SELECT setval('staff_staff_id_seq', (
+  SELECT MAX(staff_id)
+    FROM staff
+                                    ));
+SELECT setval('store_store_id_seq', (
+  SELECT MAX(store_id)
+    FROM store
+                                    ));
+SELECT setval('customer_customer_id_seq', (
+  SELECT MAX(customer_id)
+    FROM customer
+                                          ));
+SELECT setval('language_language_id_seq', (
+  SELECT MAX(language_id)
+    FROM language
+                                          ));
+SELECT setval('film_film_id_seq', (
+  SELECT MAX(film_id)
+    FROM film
+                                  ));
+SELECT setval('inventory_inventory_id_seq', (
+  SELECT MAX(inventory_id)
+    FROM inventory
+                                            ));
+SELECT setval('rental_rental_id_seq', (
+  SELECT MAX(rental_id)
+    FROM rental
+                                      ));
+SELECT setval('payment_payment_id_seq', (
+  SELECT MAX(payment_id)
+    FROM payment
+                                        ));
