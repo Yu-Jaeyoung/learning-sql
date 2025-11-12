@@ -569,20 +569,36 @@ CREATE INDEX idx_fk_inventory_id ON rental (inventory_id);
 CREATE INDEX idx_fk_customer_id ON rental (customer_id);
 CREATE INDEX idx_fk_staff_id ON rental (staff_id);
 
-CREATE OR REPLACE FUNCTION func_set_rental_date_now() RETURNS TRIGGER AS
-$$
-BEGIN
-  -- INSERT 시 rental_date 값을 현재 시간으로 설정
-  new.rental_date = CURRENT_TIMESTAMP;
-  RETURN new;
-END;
-$$ LANGUAGE plpgsql;
+-- CREATE OR REPLACE FUNCTION func_set_rental_date_now() RETURNS TRIGGER AS
+-- $$
+-- BEGIN
+--   -- INSERT 시 rental_date 값을 현재 시간으로 설정
+--   new.rental_date = CURRENT_TIMESTAMP;
+--   RETURN new;
+-- END;
+-- $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_rental_date
-  BEFORE INSERT
-  ON rental
-  FOR EACH ROW
-EXECUTE FUNCTION func_set_rental_date_now();
+-- CREATE TRIGGER trg_rental_date
+--   BEFORE INSERT
+--   ON rental
+--   FOR EACH ROW
+-- EXECUTE FUNCTION func_set_rental_date_now();
+
+-- 이 함수를 사용하는 트리거 조회
+-- SELECT
+--     t.tgname AS trigger_name,
+--     c.relname AS table_name,
+--     p.proname AS function_name
+-- FROM pg_trigger t
+-- JOIN pg_class c ON t.tgrelid = c.oid
+-- JOIN pg_proc p ON t.tgfoid = p.oid
+-- WHERE p.proname = 'func_set_rental_date_now';
+
+-- 비활성화
+-- ALTER TABLE rental DISABLE TRIGGER trg_rental_date;
+
+-- 트리거 삭제 (트리거 이름을 알고 있는 경우)
+-- DROP TRIGGER IF EXISTS trg_rental_date ON rental;
 
 CREATE TRIGGER trg_rental_last_update
   BEFORE UPDATE
@@ -617,26 +633,43 @@ CREATE TABLE payment
 -- CREATE INDEX idx_fk_customer_id ON payment (customer_id);
 
 -- ON UPDATE 기능 구현 (Trigger)
-CREATE TRIGGER trg_payment_last_update
-  BEFORE UPDATE
-  ON payment
-  FOR EACH ROW
-EXECUTE FUNCTION update_last_update_column();
+-- CREATE TRIGGER trg_payment_last_update
+--   BEFORE UPDATE
+--   ON payment
+--   FOR EACH ROW
+-- EXECUTE FUNCTION update_last_update_column();
 
-CREATE OR REPLACE FUNCTION func_set_payment_date_now() RETURNS TRIGGER AS
-$$
-BEGIN
-  -- INSERT 시 payment_date 값을 현재 시간으로 설정
-  new.payment_date = CURRENT_TIMESTAMP;
-  RETURN new;
-END;
-$$ LANGUAGE plpgsql;
+-- CREATE OR REPLACE FUNCTION func_set_payment_date_now() RETURNS TRIGGER AS
+-- $$
+-- BEGIN
+--   -- INSERT 시 payment_date 값을 현재 시간으로 설정
+--   new.payment_date = CURRENT_TIMESTAMP;
+--   RETURN new;
+-- END;
+-- $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_payment_date
-  BEFORE INSERT
-  ON payment
-  FOR EACH ROW
-EXECUTE FUNCTION func_set_payment_date_now();
+-- CREATE TRIGGER trg_payment_date
+--   BEFORE INSERT
+--   ON payment
+--   FOR EACH ROW
+-- EXECUTE FUNCTION func_set_payment_date_now();
+
+
+-- 이 함수를 사용하는 트리거 조회
+-- SELECT
+--     t.tgname AS trigger_name,
+--     c.relname AS table_name,
+--     p.proname AS function_name
+-- FROM pg_trigger t
+-- JOIN pg_class c ON t.tgrelid = c.oid
+-- JOIN pg_proc p ON t.tgfoid = p.oid
+-- WHERE p.proname = 'func_set_payment_date_now';
+
+-- 비활성화
+-- ALTER TABLE payment DISABLE TRIGGER trg_payment_date;
+
+-- 트리거 삭제 (트리거 이름을 알고 있는 경우)
+-- DROP TRIGGER IF EXISTS trg_payment_date ON payment;
 
 -------------------------------
 -------------------------------
