@@ -1,4 +1,32 @@
-his is a piece of extremely long varchar data';
+SET search_path TO sakila, public;
+-- Data Generation, Manipulation, and Conversion
+
+-- Working with String Data
+-- When working with string data, you will be using one of the following character data types:
+-- 1. CHAR : Holds fixed-length, blank-padded strings
+-- 2. VARCHAR : Holds variable-length strings.
+-- 3. text : Holds very large variable-length strings
+
+-- To demonstrate how you can use these various types,
+-- use the following table for some of the examples in this section:
+
+CREATE TABLE string_tbl
+(
+  char_fld  CHAR(30),
+  vchar_fld VARCHAR(30),
+  text_fld  TEXT
+);
+
+-- String Generation
+-- The simplest way to populate a character column is to enclose a string in quotes,
+-- as in the following examples:
+INSERT
+  INTO string_tbl (char_fld, vchar_fld, text_fld)
+VALUES ('This is char data', 'This is varchar data', 'This is text data');
+
+-- When inserting string data into a table, remember that if the length of the string
+-- exceeds the maximum size for the character column, the server will throw an exception.
+
 
 -- Including single quotes
 -- To make the server ignore the apostrophe in the word, you will need to add an escape to
