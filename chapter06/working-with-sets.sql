@@ -1,4 +1,108 @@
-ntersection will be an empty set.
+SET search_path TO sakila, public;
+
+-- Set Theory in Practice
+-- When dealing with actual data, there is a need to describe the composition of the data sets
+-- involved if they are to be combined.
+
+SELECT *
+  FROM information_schema.columns
+ WHERE table_name = 'customer';
+
+SELECT *
+  FROM information_schema.columns
+ WHERE table_name = 'city';
+
+-- Therefore, when performing set operations on two data sets, the following guidelines must apply:
+-- 1. Both data sets must have the same number of columns.
+-- 2. The data types of each column across the two data sets must be the same(or the server
+--    must be able to convert one to the other).
+
+
+-- You perform a set operation by placing a set operator between two select statements,
+-- as demonstrated by the following:
+
+SELECT 1     num
+     , 'abc' str
+ UNION
+SELECT 9     num
+     , 'xyz' str;
+
+-- Each of the individual queries yields a data set consisting of a single row having a numeric
+-- column and a string column. The set operator, which in this case is union, tells the database server
+-- to combine all rows from the two sets. Thus, the final set includes two rows of two columns.
+-- This query is known as a compound query because it comprises multiple, otherwise-independent queries.
+-- As you will see later, compound queries may include more than two queries if multiple set operations
+-- are needed to attain the final results.
+
+-- Set Operators
+-- The union Operator
+-- The union and union all operators allow you to combine multiple data sets.
+-- The differSET search_path TO sakila, public;
+
+-- Set Theory in Practice
+-- When dealing with actual data, there is a need to describe the composition of the data sets
+-- involved if they are to be combined.
+
+SELECT *
+  FROM information_schema.columns
+ WHERE table_name = 'customer';
+
+SELECT *
+  FROM information_schema.columns
+ WHERE table_name = 'city';
+
+-- Therefore, when performing set operations on two data sets, the following guidelines must apply:
+-- 1. Both data sets must have the same number of columns.
+-- 2. The data types of each column across the two data sets must be the same(or the server
+--    must be able to convert one to the other).
+
+
+-- You perform a set operation by placing a set operator between two select statements,
+-- as demonstrated by the ence between the two is that union sorts the combined set and removes duplicates,
+-- whereas union all does not. With union all, the number of rows in the final data set will
+-- always equal the sum of the number of rows in the sets being combined.
+-- This operation is the simplest set operation to perform (from the server's point of view),
+-- since there is no need for the server to check for overlapping data.
+
+SELECT 'CUST' typ
+     , c.first_name
+     , c.last_name
+  FROM customer c
+ UNION ALL
+SELECT 'ACTR' type
+     , a.first_name
+     , a.last_name
+  FROM actor a;
+
+SELECT c.first_name
+     , c.last_name
+  FROM customer c
+ WHERE c.first_name LIKE 'J%'
+   AND c.last_name LIKE 'D%'
+ UNION ALL
+SELECT a.first_name
+     , a.last_name
+  FROM actor a
+ WHERE a.first_name LIKE 'J%'
+   AND a.last_name LIKE 'D%';
+
+
+-- exclude duplicate rows,
+SELECT c.first_name
+     , c.last_name
+  FROM customer c
+ WHERE c.first_name LIKE 'J%'
+   AND c.last_name LIKE 'D%'
+ UNION
+SELECT a.first_name
+     , a.last_name
+  FROM actor a
+ WHERE a.first_name LIKE 'J%'
+   AND a.last_name LIKE 'D%';
+
+-- The intersect Operator
+-- If the two queries in a compound query return nonoverlapping data sets,
+-- then the intersection will be an empty set.
    SELECT c.first_name
         , c.last_name
      FROM customer c
