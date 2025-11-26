@@ -19,6 +19,14 @@ SET search_path TO music_streaming, public;
 -- description: TEXT
 -- created_at: TIMESTAMP, 기본값은 현재 시간
 
+CREATE TABLE genre
+(
+  genre_id    SERIAL PRIMARY KEY,
+  name        VARCHAR(50) NOT NULL,
+  description TEXT,
+  created_at  TIMESTAMP DEFAULT NOW()
+);
+
 
 -- 문제 1-2: artist 테이블을 생성하세요.
 
@@ -29,6 +37,14 @@ SET search_path TO music_streaming, public;
 -- debut_year: INTEGER
 -- created_at: TIMESTAMP, 기본값 CURRENT_TIMESTAMP
 
+CREATE TABLE artist
+(
+  artist_id  SERIAL PRIMARY KEY,
+  name       VARCHAR(100) NOT NULL,
+  country    VARCHAR(50),
+  debut_year INTEGER,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 
 -- 문제 1-4: user_account 테이블을 생성하세요.
@@ -42,6 +58,17 @@ SET search_path TO music_streaming, public;
 -- created_at: TIMESTAMP, 기본값 NOW()
 -- is_active: BOOLEAN, 기본값 TRUE
 
+CREATE TABLE user_account
+(
+  user_id    SERIAL PRIMARY KEY,
+  email      VARCHAR(100) UNIQUE NOT NULL,
+  username   VARCHAR(50) UNIQUE  NOT NULL,
+  birth_date DATE,
+  country    VARCHAR(50),
+  created_at TIMESTAMP DEFAULT NOW(),
+  is_active  BOOLEAN   DEFAULT TRUE
+);
+
 
 -- 문제 1-5: subscription_plan 테이블을 생성하세요.
 
@@ -51,6 +78,17 @@ SET search_path TO music_streaming, public;
 -- monthly_price: NUMERIC(5,2), CHECK (>= 0)
 -- max_offline_downloads: INTEGER
 -- ad_free: BOOLEAN
+
+CREATE TABLE subscription_plan
+(
+  plan_id               SERIAL PRIMARY KEY,
+  plan_name             VARCHAR(20),
+  monthly_price         NUMERIC(5, 2),
+  max_offline_downloads INTEGER,
+  ad_free               BOOLEAN,
+  CONSTRAINT plan_name_check CHECK (plan_name IN ('free', 'basic', 'premium')),
+  CONSTRAINT monthly_price_check CHECK ( monthly_price >= 0)
+);
 
 
 -- 문제 1-6: album 테이블을 생성하세요.
@@ -63,11 +101,23 @@ SET search_path TO music_streaming, public;
 -- total_tracks: SMALLINT
 -- created_at: TIMESTAMP
 
+CREATE TABLE album
+(
+  album_id     SERIAL PRIMARY KEY,
+  title        VARCHAR(200) NOT NULL,
+  artist_id    INTEGER,
+  release_date DATE,
+  total_tracks SMALLINT,
+  created_at   TIMESTAMP
+);
+
 
 -- 문제 1-7: album 테이블에 외래키 제약조건을 추가하세요. (album 테이블을 수정)
 -- artist_id가 artist 테이블의 artist_id를 참조하도록
 -- ON DELETE CASCADE 설정
 
+ALTER TABLE album
+  ADD CONSTRAINT album_artist_id_fk FOREIGN KEY (artist_id) REFERENCES artist (artist_id) ON DELETE CASCADE;
 
 -- 문제 1-8: track 테이블을 생성하세요.
 
@@ -81,6 +131,20 @@ SET search_path TO music_streaming, public;
 -- play_count: BIGINT, 기본값 0
 -- created_at: TIMESTAMP
 
+CREATE TABLE track
+(
+  track_id         SERIAL PRIMARY KEY,
+  title            VARCHAR(200) NOT NULL,
+  album_id         INTEGER,
+  genre_id         INTEGER,
+  duration_seconds INTEGER,
+  track_number     SMALLINT,
+  play_count       BIGINT DEFAULT 0,
+  created_at       TIMESTAMP,
+  CONSTRAINT track_album_id_fk FOREIGN KEY (album_id) REFERENCES album (album_id) ON DELETE CASCADE,
+  CONSTRAINT track_genre_id_fk FOREIGN KEY (genre_id) REFERENCES genre (genre_id) ON DELETE SET NULL,
+  CONSTRAINT duration_seconds_check CHECK (duration_seconds > 0)
+);
 
 -- 문제 1-9: user_subscription 테이블을 생성하세요.
 
@@ -92,6 +156,19 @@ SET search_path TO music_streaming, public;
 -- end_date: DATE
 -- is_active: BOOLEAN, 기본값 TRUE
 -- CHECK: end_date > start_date
+
+CREATE TABLE user_subscription
+(
+  subscription_id SERIAL PRIMARY KEY,
+  user_id         INTEGER,
+  plan_id         INTEGER,
+  start_date      DATE NOT NULL,
+  end_date        DATE,
+  is_active       BOOLEAN DEFAULT TRUE,
+  CONSTRAINT user_sub_user_id_fk FOREIGN KEY (user_id) REFERENCES user_account (user_id) ON DELETE CASCADE,
+  CONSTRAINT user_sub_plan_id_fk FOREIGN KEY (plan_id) REFERENCES subscription_plan (plan_id),
+  CONSTRAINT start_end_date_check CHECK (end_date > start_date)
+);
 
 
 -- 문제 1-10: playlist 테이블을 생성하세요.
@@ -105,6 +182,18 @@ SET search_path TO music_streaming, public;
 -- created_at: TIMESTAMP
 -- updated_at: TIMESTAMP
 
+CREATE TABLE playlist
+(
+  playlist_id SERIAL PRIMARY KEY,
+  user_id     INTEGER,
+  name        VARCHAR(100) NOT NULL,
+  description TEXT,
+  is_public   BOOLEAN DEFAULT FALSE,
+  created_at  TIMESTAMP,
+  updated_at  TIMESTAMP,
+  CONSTRAINT playlist_user_id_fk FOREIGN KEY (user_id) REFERENCES user_account (user_id)
+);
+
 
 -- 문제 1-11: playlist_track 테이블을 생성하세요. (플레이리스트와 트랙의 다대다 관계)
 
@@ -114,6 +203,17 @@ SET search_path TO music_streaming, public;
 -- added_at: TIMESTAMP, 기본값 NOW()
 -- position: INTEGER (플레이리스트 내 순서)
 -- 복합 기본키: (playlist_id, track_id)
+
+CREATE TABLE playlist_track
+(
+  playlist_id INTEGER,
+  track_id    INTEGER,
+  added_at    TIMESTAMP DEFAULT NOW(),
+  position    INTEGER,
+  PRIMARY KEY (playlist_id, track_id),
+  CONSTRAINT playlist_track_playlist_id_fk FOREIGN KEY (playlist_id) REFERENCES playlist (playlist_id),
+  CONSTRAINT playlist_track_track_id_fk FOREIGN KEY (track_id) REFERENCES track (track_id)
+);
 
 
 -- 문제 1-12: listening_history 테이블을 생성하세요.
@@ -126,6 +226,18 @@ SET search_path TO music_streaming, public;
 -- listen_duration_seconds: INTEGER (실제 들은 시간)
 -- completed: BOOLEAN (곡을 끝까지 들었는지)
 
+CREATE TABLE listening_history
+(
+  history_id              SERIAL PRIMARY KEY,
+  user_id                 INTEGER,
+  track_id                INTEGER,
+  played_at               TIMESTAMP NOT NULL,
+  listen_duration_seconds INTEGER,
+  completed               BOOLEAN,
+  CONSTRAINT listening_history_user_id_fk FOREIGN KEY (user_id) REFERENCES user_account (user_id),
+  CONSTRAINT listening_history_track_id_fk FOREIGN KEY (track_id) REFERENCES track (track_id)
+);
+
 
 -- 문제 1-13: artist_follower 테이블을 생성하세요.
 
@@ -134,6 +246,16 @@ SET search_path TO music_streaming, public;
 -- artist_id: INTEGER, artist 참조
 -- followed_at: TIMESTAMP
 -- 복합 기본키: (user_id, artist_id)
+
+CREATE TABLE artist_follower
+(
+  user_id     INTEGER,
+  artist_id   INTEGER,
+  followed_at TIMESTAMP,
+  PRIMARY KEY (user_id, artist_id),
+  CONSTRAINT artist_follower_user_id_fk FOREIGN KEY (user_id) REFERENCES user_account (user_id),
+  CONSTRAINT artist_follower_artist_id_fk FOREIGN KEY (artist_id) REFERENCES artist (artist_id)
+);
 
 
 -- 2. 데이터 삽입
