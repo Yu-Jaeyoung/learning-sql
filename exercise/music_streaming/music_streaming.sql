@@ -326,16 +326,100 @@ VALUES ('Come Together', 1, 2, 259, 1, 15420, '2024-01-20 10:00:00')
 
 -- 3. 데이터 조회
 -- 문제 3-1: 모든 장르의 이름을 알파벳 순으로 조회하세요.
+SELECT name
+  FROM genre
+ ORDER BY name;
+
+
 -- 문제 3-2: 한국 출신 아티스트들의 이름과 데뷔 연도를 조회하세요.
+SELECT name
+     , debut_year
+  FROM artist
+ WHERE country = 'South Korea';
+
+
 -- 문제 3-3: 가격이 $5 이상인 구독 요금제를 조회하세요.
+SELECT *
+  FROM subscription_plan
+ WHERE monthly_price >= 5;
+
+
 -- 문제 3-4: 2020년부터 발매된 앨범의 제목과 발매일을 조회하세요.
--- 문제 3-5: 재생 시간이 3분(180초) 이상인 트랙들의 제목과 재생 시간을 조회하세요. 힌트: CONCAT() 또는 TO_CHAR() 사용하면 '분:초' 형식으로 표시할 수 있음
+SELECT title
+     , release_date
+  FROM album
+ WHERE release_date >= '2020-01-01';
+
+-- 문제 3-5: 재생 시간이 3분(180초) 이상인 트랙들의 제목과 재생 시간을 조회하세요.
+-- 힌트: CONCAT() 또는 TO_CHAR() 사용하면 '분:초' 형식으로 표시할 수 있음
+SELECT title
+     , CONCAT((duration_seconds / 60), ':', (duration_seconds % 60)) AS 재생시간
+  FROM track
+ WHERE duration_seconds >= 180;
+
+-- TO_CHAR 사용
+SELECT title
+     , TO_CHAR((duration_seconds || ' seconds')::INTERVAL, 'MI:SS') AS 재생시간
+  FROM track
+ WHERE duration_seconds >= 180;
+
+-- LPAD 사용
+SELECT title
+     , CONCAT(duration_seconds / 60, ':', LPAD((duration_seconds % 60)::TEXT, 2, '0')) AS 재생시간
+  FROM track
+ WHERE duration_seconds >= 180;
+
+-- 조건문으로 포맷 개선
+SELECT title
+     , CONCAT(duration_seconds / 60, ':', CASE
+                                            WHEN duration_seconds % 60 < 10 THEN '0' || (duration_seconds % 60)
+                                            ELSE (duration_seconds % 60)::TEXT END) AS 재생시간
+  FROM track
+ WHERE duration_seconds >= 180;
+
+
 -- 문제 3-6: 이메일 도메인이 'gmail.com'인 사용자를 찾으세요.
+SELECT *
+  FROM user_account
+ WHERE email LIKE '%@gmail.com';
+
+
 -- 문제 3-7: 트랙 제목에 'love'가 포함된 모든 곡을 찾으세요. (대소문자 구분 없이)
+SELECT *
+  FROM track
+ WHERE LOWER(title) LIKE LOWER('%love%');
+
+-- PostgreSQL 전용
+SELECT *
+  FROM track
+ WHERE title ILIKE '%love%';
+
+
 -- 문제 3-8: 1990년대(1990-1999)에 데뷔한 아티스트를 찾으세요.
+SELECT *
+  FROM artist
+ WHERE debut_year BETWEEN 1990 AND 1999;
+
+
 -- 문제 3-9: 공개 플레이리스트만 조회하되, 최신 생성 순으로 정렬하세요.
+SELECT *
+  FROM playlist
+ WHERE is_public = TRUE
+ ORDER BY created_at DESC;
+
+
 -- 문제 3-10: 구독 상태가 활성화된 유저를 조회하세요.
+SELECT *
+  FROM user_subscription
+ WHERE is_active = TRUE
+   AND (end_date IS NULL OR end_date > CURRENT_DATE);
+
+
 -- 문제 3-11: 2024년 11월에 생성된 플레이리스트를 찾으세요.
+SELECT *
+  FROM playlist
+ WHERE created_at >= '2024-11-01'
+   AND created_at < '2024-12-01';
 
 
 -- 4. 데이터 집계
