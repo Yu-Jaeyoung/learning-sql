@@ -424,24 +424,115 @@ SELECT *
 
 -- 4. 데이터 집계
 -- 문제 4-1: 전체 트랙 수를 세세요.
+SELECT COUNT(*)
+  FROM track;
+
+
 -- 문제 4-2: 모든 트랙의 평균 재생 시간(초)을 소수점 첫째 자리에서 반올림하여 구하세요.
+SELECT ROUND(AVG(duration_seconds))
+  FROM track;
+
+
 -- 문제 4-3: 가장 긴 트랙과 가장 짧은 트랙의 재생 시간을 조회하세요.
+SELECT MAX(duration_seconds) AS 가장_긴_트랙
+     , MIN(duration_seconds) AS 가장_짧은_트랙
+  FROM track;
+
+
 -- 문제 4-4: 장르별로 트랙 수를 세고, 트랙 수가 많은 순으로 정렬하세요.
+SELECT genre_id
+     , COUNT(*) AS count
+  FROM track
+ GROUP BY genre_id
+ ORDER BY count DESC;
+
+
 -- 문제 4-5: 아티스트별로 발매한 앨범 수를 이름을 포함하여 조회하세요.
+SELECT ar.artist_id
+     , ar.name
+     , COUNT(*) AS album_count
+  FROM album al
+       INNER JOIN artist ar ON al.artist_id = ar.artist_id
+ GROUP BY ar.artist_id
+        , ar.name
+ ORDER BY album_count;
+
+
 -- 문제 4-6: 사용자별 플레이리스트 수를 세되, 2개 이상 가진 사용자만 표시하세요.
+SELECT user_id
+     , COUNT(*) AS playlist_count
+  FROM playlist
+ GROUP BY user_id
+HAVING COUNT(*) >= 2;
+
+
 -- 문제 4-7: 각 아티스트의 총 재생 횟수를 계산하세요.
+SELECT a.artist_id
+     , SUM(t.play_count)
+  FROM album a
+       INNER JOIN track t ON a.album_id = t.album_id
+ GROUP BY a.artist_id;
+
+
 -- 문제 4-8: 장르별 평균 트랙 길이를 분 단위로 조회하세요. (소수점 2자리까지 표현)
--- 문제 4-9: 월별 신규 사용자 수를 조회하세요. (2024년 기준) 힌트: TO_CHAR(날짜_컬럼명, 'YYYY-MM') 사용
--- 문제 4-10: 아티스트별, 장르별 트랙 수의 소계와 총계를 조회하세요. 힌트: ROLLUP
--- 문제 4-11: 요금제별, 국가별 구독자 수를 조회하세요. 힌트: CUBE, is_active = TRUE 조건 사용
+SELECT genre_id
+     , ROUND(AVG(duration_seconds) / 60, 2)
+  FROM track
+ GROUP BY genre_id;
+
+
+-- 문제 4-9: 월별 신규 사용자 수를 조회하세요. (2024년 기준)
+-- 힌트: TO_CHAR(날짜_컬럼명, 'YYYY-MM') 사용
+SELECT TO_CHAR(created_at, 'YYYY-MM') AS 월
+     , COUNT(*)                       AS 신규_사용자수
+  FROM user_account
+ WHERE created_at >= '2024-01-01'
+   AND created_at < '2025-01-01'
+ GROUP BY TO_CHAR(created_at, 'YYYY-MM')
+ ORDER BY 월;
+
+
+-- 문제 4-10: 아티스트별, 장르별 트랙 수를 조회하되, ROLLUP을 사용하여 소계와 총계를 포함하세요.
+SELECT a.artist_id
+     , t.genre_id
+     , COUNT(*) AS track_count
+  FROM track t
+       INNER JOIN album a ON t.album_id = a.album_id
+ GROUP BY ROLLUP (a.artist_id
+     , t.genre_id)
+ ORDER BY a.artist_id NULLS LAST
+        , t.genre_id NULLS LAST;
+
+
+-- 문제 4-11: 요금제별, 국가별 구독자 수를 CUBE를 사용하여 조회하세요.
+SELECT us.plan_id
+     , ua.country
+     , COUNT(*)
+  FROM user_account ua
+       INNER JOIN user_subscription us ON ua.user_id = us.user_id
+ WHERE us.is_active = TRUE
+ GROUP BY CUBE (us.plan_id
+     , ua.country)
+ ORDER BY us.plan_id
+        , ua.country;
+
+
 -- 문제 4-12: 각 사용자의 청취 기록에서:
 -- 1. 총 청취 시간(초)
 -- 2. 들은 곡 수
 -- 3. 완주율 (completed = TRUE인 비율)
 -- 을 계산하되, 10곡 이상 들은 사용자만 표시하세요.
 
--- 힌트 1: TRUE는 1, FALSE는 0 을 나타냄
--- 힌트 2: PostgreSQL에서는 BOOLEAN을 :: INTEGER를 사용해 간단히 변환 가능
+-- 힌트 1: TRUE를 1, FALSE를 0
+-- 힌트 2: PostgreSQL에서는 Boolean을 ::INTEGER 을 사용해 간단히 변환 가능
+
+SELECT user_id
+     , SUM(listen_duration_seconds)
+     , COUNT(*)
+     , ROUND(AVG(completed::INTEGER) * 100, 2)
+  FROM listening_history
+ GROUP BY user_id
+HAVING COUNT(*) >= 10;
 
 
 -- 5. 테이블 종합
