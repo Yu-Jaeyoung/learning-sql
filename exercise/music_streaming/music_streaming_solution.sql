@@ -537,40 +537,218 @@ HAVING COUNT(*) >= 10;
 
 -- 5. 테이블 종합
 -- 문제 5-1: 트랙 제목과 해당 앨범 제목을 함께 조회하세요.
+SELECT t.title AS track_title
+     , a.title AS album_title
+  FROM track t
+       INNER JOIN album a ON t.album_id = a.album_id;
+
+
 -- 문제 5-2: 앨범 제목, 아티스트 이름, 발매일을 함께 조회하세요.
+SELECT al.title AS album_title
+     , ar.name  AS artist_name
+     , al.release_date
+  FROM album al
+       INNER JOIN artist ar ON al.artist_id = ar.artist_id
+ ORDER BY ar.name
+        , al.release_date;
+
+
 -- 문제 5-3: 플레이리스트 이름과 소유자(사용자) 이름을 함께 조회하세요.
+SELECT pl.name     AS playlist_name
+     , ua.username AS owner_name
+  FROM user_account ua
+       INNER JOIN playlist pl ON ua.user_id = pl.user_id;
+
+
 -- 문제 5-4: 각 트랙의 제목, 장르 이름, 재생 시간을 조회하세요.
+SELECT t.title AS track_title
+     , g.name  AS genre_name
+     , t.duration_seconds
+  FROM track t
+       INNER JOIN genre g ON t.genre_id = g.genre_id
+ ORDER BY t.title;
+
+
 -- 문제 5-5: 트랙 제목, 앨범 제목, 아티스트 이름, 장르 이름을 모두 함께 조회하세요.
+SELECT t.title  AS track_title
+     , al.title AS album_title
+     , ar.name  AS artist_name
+     , g.name   AS genre_name
+  FROM track t
+       INNER JOIN album al ON t.album_id = al.album_id
+       INNER JOIN genre g ON t.genre_id = g.genre_id
+       INNER JOIN artist ar ON al.artist_id = ar.artist_id;
+
+
 -- 문제 5-6: 사용자 이름, 구독 요금제 이름, 월 요금을 함께 조회하세요. (현재 활성 구독만)
+SELECT ua.username      AS user_name
+     , sp.plan_name
+     , sp.monthly_price AS monthly_fee
+  FROM user_account ua
+       INNER JOIN user_subscription us ON ua.user_id = us.user_id
+       INNER JOIN subscription_plan sp ON us.plan_id = sp.plan_id
+ WHERE us.is_active = TRUE;
+
+
 -- 문제 5-7: 플레이리스트에 담긴 트랙 정보를 조회하세요:
 -- - 플레이리스트 이름
 -- - 트랙 제목
 -- - 아티스트 이름
 -- - 추가된 날짜
---
+
+SELECT p.name  AS playlist_name
+     , t.title AS track_title
+     , ar.name AS artist_name
+     , pt.added_at
+  FROM playlist p
+       INNER JOIN playlist_track pt ON p.playlist_id = pt.playlist_id
+       INNER JOIN track t ON pt.track_id = t.track_id
+       INNER JOIN album al ON t.album_id = al.album_id
+       INNER JOIN artist ar ON al.artist_id = ar.artist_id;
+
+
 -- 문제 5-8: 각 사용자가 들은 음악의 아티스트 정보를 조회하세요:
 -- - 사용자 이름
 -- - 트랙 제목
 -- - 아티스트 이름
 -- - 청취 시간
---
+SELECT ua.username
+     , t.title AS track_title
+     , ar.name AS artist_name
+     , lh.listen_duration_seconds
+  FROM user_account ua
+       INNER JOIN listening_history lh ON ua.user_id = lh.user_id
+       INNER JOIN track t ON lh.track_id = t.track_id
+       INNER JOIN album al ON t.album_id = al.album_id
+       INNER JOIN artist ar ON al.artist_id = ar.artist_id;
+
+
 -- 문제 5-9: 모든 앨범과 해당 앨범의 트랙 수를 조회하세요. (트랙이 없는 앨범도 포함)
+SELECT al.album_id
+     , al.title        AS album_title
+     , COUNT(track_id) AS track_count
+  FROM album al
+       LEFT OUTER JOIN track t ON al.album_id = t.album_id
+ GROUP BY al.album_id
+        , al.title
+ ORDER BY al.album_id;
+
+
 -- 문제 5-10: 모든 사용자와 그들의 플레이리스트 수를 조회하세요.
+SELECT ua.username
+     , COUNT(playlist_id) AS playlist_count
+  FROM user_account ua
+       LEFT OUTER JOIN playlist p ON ua.user_id = p.user_id
+ GROUP BY ua.user_id
+        , ua.username
+ ORDER BY ua.user_id;
+
+
 -- 문제 5-11: 모든 아티스트와 팔로워 수를 조회하세요.
+SELECT ar.name        AS artist_name
+     , COUNT(user_id) AS follower_count
+  FROM artist ar
+       LEFT OUTER JOIN artist_follower af ON ar.artist_id = af.artist_id
+ GROUP BY ar.artist_id
+        , ar.name
+ ORDER BY ar.artist_id;
+
+
 -- 문제 5-12: 모든 트랙과 플레이리스트 추가 횟수를 조회하세요. (한 번도 플레이리스트에 추가되지 않은 트랙도 포함)
+SELECT t.title         AS track_title
+     , COUNT(added_at) AS add_count
+  FROM track t
+       LEFT OUTER JOIN playlist_track pt ON t.track_id = pt.track_id
+ GROUP BY t.track_id
+        , t.title
+ ORDER BY t.track_id;
+
+
 -- 문제 5-13: 트랙이 하나도 없는 앨범을 찾으세요.
+SELECT al.album_id
+     , al.title AS album_title
+  FROM album al
+       LEFT OUTER JOIN track t ON al.album_id = t.album_id
+ WHERE t.album_id IS NULL;
+
+
 -- 문제 5-14: 플레이리스트가 하나도 없는 사용자를 찾으세요.
+SELECT ua.user_id
+     , ua.username
+  FROM user_account ua
+       LEFT OUTER JOIN playlist p ON ua.user_id = p.user_id
+ WHERE p.playlist_id IS NULL;
+
 -- 문제 5-15: 팔로워가 한 명도 없는 아티스트를 찾으세요.
+SELECT ar.artist_id
+     , ar.name AS artist_name
+  FROM artist ar
+       LEFT OUTER JOIN artist_follower af ON ar.artist_id = af.artist_id
+ WHERE af.user_id IS NULL;
+
+
 -- 문제 5-16: 한 번도 재생되지 않은 트랙을 찾으세요.
+SELECT t.title
+  FROM track t
+       LEFT OUTER JOIN listening_history lh ON t.track_id = lh.track_id
+ WHERE lh.history_id IS NULL;
+
+
 -- 문제 5-17: 구독 이력이 없는 사용자를 찾으세요.
+SELECT ua.user_id
+     , ua.username
+  FROM user_account ua
+       LEFT OUTER JOIN user_subscription us ON ua.user_id = us.user_id
+ WHERE us.user_id IS NULL;
+
+
 -- 문제 5-18: 모든 아티스트의 앨범 수와 트랙 수를 조회하세요.
--- 문제 5-19: 각 장르의 트랙 수와 총 재생 횟수를 조회하세요. (트랙이 없는 장르도 포함, 0으로 표시) -- 힌트: COALESCE(값, 대체값) 함수를 사용하면 NULL을 다른 값으로 대체할 수 있습니다.
+SELECT ar.artist_id
+     , ar.name                     AS artist_name
+     , COUNT(DISTINCT al.album_id) AS album_count
+     , COUNT(t.track_id)           AS track_count
+  FROM artist ar
+       LEFT OUTER JOIN album al ON ar.artist_id = al.artist_id
+       LEFT OUTER JOIN track t ON t.album_id = al.album_id
+ GROUP BY ar.artist_id
+        , ar.name
+ ORDER BY ar.artist_id;
+
+
+-- 문제 5-19: 각 장르의 트랙 수와 총 재생 횟수를 조회하세요. (트랙이 없는 장르도 포함, 0으로 표시)
+-- 힌트: COALESCE(값, 대체값) 함수를 사용하면 NULL을 다른 값으로 대체할 수 있습니다.
+SELECT g.name                       AS genre_name
+     , COUNT(track_id)              AS track_count
+     , COALESCE(SUM(play_count), 0) AS total_play_count
+  FROM genre g
+       LEFT OUTER JOIN track t ON g.genre_id = t.genre_id
+ GROUP BY g.genre_id
+        , g.name;
+
+
 -- 문제 5-20: 모든 사용자의 구독 상태를 조회하세요:
 -- - 사용자 이름
 -- - 현재 구독 요금제 (없으면 'Free')
 -- - 구독 시작일 (없으면 NULL)
 -- - 월 요금 (없으면 0)
 -- 힌트: COALESCE(값, 대체값) 함수를 사용하면 NULL을 다른 값으로 대체할 수 있습니다.
+SELECT ua.username
+     , COALESCE(sp.plan_name, 'Free') AS current_plan
+     , us.start_date
+     , COALESCE(sp.monthly_price, 0)  AS monthly_fee
+  FROM user_account ua
+       LEFT OUTER JOIN user_subscription us ON ua.user_id = us.user_id AND us.is_active = TRUE
+       LEFT OUTER JOIN subscription_plan sp ON us.plan_id = sp.plan_id;
+
+-- CASE WHEN THEN 사용
+SELECT ua.username
+     , CASE WHEN sp.plan_name IS NULL THEN 'Free' ELSE sp.plan_name END    AS current_plan
+     , us.start_date
+     , CASE WHEN sp.monthly_price IS NULL THEN 0 ELSE sp.monthly_price END AS monthly_fee
+  FROM user_account ua
+       LEFT OUTER JOIN user_subscription us ON ua.user_id = us.user_id AND us.is_active = TRUE
+       LEFT OUTER JOIN subscription_plan sp ON us.plan_id = sp.plan_id;
+
 
 -- 문제 5-21: 모든 플레이리스트의 상세 정보를 조회하세요:
 -- - 플레이리스트 이름
@@ -578,14 +756,52 @@ HAVING COUNT(*) >= 10;
 -- - 트랙 수 (0개 포함)
 -- - 총 재생 시간 (트랙들의 duration 합계)
 -- - 트랙이 없으면 0 표시
+SELECT pl.name                              AS playlist_name
+     , ua.username                          AS owner_name
+     , COUNT(t.track_id)                    AS track_count
+     , COALESCE(SUM(t.duration_seconds), 0) AS total_duration
+  FROM playlist pl
+       INNER JOIN user_account ua ON pl.user_id = ua.user_id
+       LEFT OUTER JOIN playlist_track pt ON pl.playlist_id = pt.playlist_id
+       LEFT OUTER JOIN track t ON pt.track_id = t.track_id
+ GROUP BY pl.playlist_id
+        , pl.name
+        , ua.username;
+
 
 -- 문제 5-22: 각 사용자와 그들의 최근 청취 날짜를 조회하세요. (한 번도 듣지 않은 사용자는 NULL 표시)
+SELECT ua.user_id
+     , ua.username
+     , MAX(lh.played_at)::DATE AS last_listened_date
+  FROM user_account ua
+       LEFT OUTER JOIN listening_history lh ON ua.user_id = lh.user_id
+ GROUP BY ua.user_id
+        , ua.username;
+
+
 -- 문제 5-23: (구독자가 없는 요금제도 포함하여)모든 구독 요금제와 현재 구독자 수를 RIGHT JOIN으로 조회하세요.
+SELECT sp.plan_name
+     , COUNT(us.user_id) AS subscriber_count
+  FROM user_subscription us
+       RIGHT OUTER JOIN subscription_plan sp ON us.plan_id = sp.plan_id AND us.is_active = TRUE
+ GROUP BY sp.plan_id
+        , sp.plan_name
+ ORDER BY sp.plan_id;
+
+
 -- 문제 5-24: 모든 사용자와 모든 아티스트의 조합을 만들어 팔로우 관계를 확인하세요:
 -- - 사용자 이름
 -- - 아티스트 이름
 -- - 팔로우 날짜 (팔로우하지 않으면 'Not Following' 표시)
 -- 힌트: CROSS JOIN으로 모든 조합을 만든 후, COALESCE 함수로 NULL을 대체할 수 있습니다.
+SELECT ua.username
+     , ar.name                                               AS artist_name
+     , COALESCE(af.followed_at::DATE::TEXT, 'Not Following') AS follow_status
+  FROM user_account ua
+       CROSS JOIN artist ar
+       LEFT JOIN artist_follower af ON ua.user_id = af.user_id AND ar.artist_id = af.artist_id
+ ORDER BY ua.username
+        , ar.name;
 
 
 -- 6. 서브쿼리
@@ -603,6 +819,104 @@ HAVING COUNT(*) >= 10;
 -- 힌트: 사용자별로 들어본 장르 수 = 전체 장르 수
 -- 문제 6-11: 자기 자신보다 팔로워가 많은 아티스트를 팔로우하는 사용자를 찾으세요.
 
+-- 문제 5-26: 각 아티스트와 그들의 가장 최근 발매 앨범을 조회하세요.
+-- 앨범이 없는 아티스트도 포함하여 조회하세요.
+SELECT ar.artist_id
+     , ar.name  AS artist_name
+     , al.title AS latest_album
+     , al.release_date
+  FROM artist ar
+       LEFT OUTER JOIN album al ON ar.artist_id = al.artist_id
+ WHERE al.release_date = (
+   SELECT MAX(al2.release_date)
+     FROM album al2
+    WHERE al2.artist_id = ar.artist_id
+                         )
+    OR al.album_id IS NULL;
+
+-- 문제 5-25: 모든 앨범과 가장 인기 있는 트랙(재생 횟수 기준)을 조회하세요. (트랙이 없는 앨범은 NULL)
+
+-- 상관 서브쿼리 방식 (Correlated Subquery)
+SELECT a.album_id
+     , a.title  AS album_title
+     , t1.title AS top_track
+     , t1.play_count
+  FROM album a
+       LEFT OUTER JOIN track t1 ON a.album_id = t1.album_id
+ WHERE t1.play_count = (
+   SELECT MAX(t2.play_count)
+     FROM track t2
+    WHERE t2.album_id = t1.album_id
+                       )
+    OR t1.track_id IS NULL;
+
+-- CTE 사용
+  WITH max_plays AS (
+    SELECT album_id
+         , MAX(play_count) AS max_count
+      FROM track
+     GROUP BY album_id
+                    )
+SELECT a.album_id
+     , a.title AS album_title
+     , t.title AS top_track
+     , t.play_count
+  FROM album a
+       LEFT OUTER JOIN track t ON a.album_id = t.album_id
+       LEFT OUTER JOIN max_plays mp ON t.album_id = mp.album_id
+ WHERE t.play_count = mp.max_count
+    OR t.track_id IS NULL;
+
+
+-- 문제 5-9: 사용자가 팔로우하는 아티스트의 신곡을 추천하세요:
+-- - 사용자가 팔로우한 각 아티스트별로
+-- - 아직 듣지 않은 곡 중
+-- - 가장 인기 있는 곡(play_count 기준) 1개만 추천
+
+  WITH ranked_tracks AS (
+    SELECT af.user_id
+         , ar.artist_id
+         , ar.name                                                                          AS artist_name
+         , t.title                                                                          AS track_title
+         , t.play_count
+         , RANK() OVER ( PARTITION BY af.user_id, ar.artist_id ORDER BY t.play_count DESC ) AS rank
+      FROM artist_follower af
+           INNER JOIN artist ar ON af.artist_id = ar.artist_id
+           INNER JOIN album al ON ar.artist_id = al.artist_id
+           INNER JOIN track t ON al.album_id = t.album_id
+           LEFT JOIN listening_history lh ON lh.track_id = t.track_id AND lh.user_id = af.user_id
+     WHERE lh.track_id IS NULL
+                        )
+SELECT user_id
+     , artist_name
+     , track_title
+     , play_count
+  FROM ranked_tracks
+ WHERE rank = 1
+ ORDER BY user_id
+        , artist_id;
+
+SELECT af.user_id
+     , ar.name AS artist_name
+     , t.title AS track_title
+     , t.play_count
+  FROM artist_follower af
+       INNER JOIN artist ar ON af.artist_id = ar.artist_id
+       INNER JOIN album al ON ar.artist_id = al.artist_id
+       INNER JOIN track t ON al.album_id = t.album_id
+       LEFT JOIN listening_history lh ON lh.track_id = t.track_id AND lh.user_id = af.user_id
+ WHERE lh.track_id IS NULL
+   AND t.play_count = (
+   SELECT MAX(t2.play_count)
+     FROM track t2
+          INNER JOIN album al2 ON t2.album_id = al2.album_id
+          LEFT JOIN listening_history lh2 ON lh2.track_id = t2.track_id AND lh2.user_id = af.user_id
+    WHERE al2.artist_id = ar.artist_id
+      AND lh2.track_id IS NULL
+                      )
+ ORDER BY af.user_id
+        , ar.artist_id;
+
 -- 7. CTE (Common Table Expressions)
 -- 문제 7-1: CTE를 사용하여 각 사용자의 총 청취 시간을 계산하고, 상위 10명을 조회하세요.
 -- 문제 7-2: Rock 장르의 인기 트랙 Top 10을 CTE로 정의하고, 이들의 상세 정보를 조회하세요.
@@ -619,13 +933,74 @@ HAVING COUNT(*) >= 10;
 -- 3. 성장률 상위 5명 아티스트
 --
 
--- Part 8: DML
+-- 문제 5-31: 2024년의 일별 신규 사용자와 신규 아티스트를 함께 조회하세요.
+-- 힌트:
+-- WITH day AS (
+--     SELECT GENERATE_SERIES(
+--         '2024-01-01'::DATE,
+--         '2024-12-31'::DATE,
+--         '1 day'::INTERVAL
+--     )::DATE AS day_date
+-- ),
+
+  WITH day AS (
+    SELECT GENERATE_SERIES('2024-01-01'::DATE, '2024-12-31'::DATE, '1 day'::INTERVAL)::DATE AS day_date
+              )
+     , new_entities AS (
+    SELECT created_at::DATE AS created_date
+      FROM user_account
+     WHERE created_at >= '2024-01-01'
+       AND created_at < '2025-01-01'
+     UNION ALL
+    SELECT created_at::DATE AS created_date
+      FROM artist
+     WHERE created_at >= '2024-01-01'
+       AND created_at < '2025-01-01'
+              )
+SELECT d.day_date
+     , COUNT(ne.created_date) AS new_count
+  FROM day d
+       LEFT JOIN new_entities ne ON d.day_date = ne.created_date
+ GROUP BY d.day_date
+ ORDER BY d.day_date;
+
+
+-- 문제 5-10: 같은 장르를 좋아하는 사용자를 찾으세요:
+-- - 각 사용자가 가장 많이 들은 장르
+-- - 같은 장르를 선호하는 다른 사용자
+  WITH favorite_genre AS (
+    SELECT a.user_id
+         , a.genre_id
+      FROM (
+             SELECT ua.user_id
+                  , g.genre_id
+                  , ROW_NUMBER() OVER (PARTITION BY ua.user_id ORDER BY COUNT(*) DESC) AS ranking
+               FROM user_account ua
+                    INNER JOIN listening_history lh ON ua.user_id = lh.user_id
+                    INNER JOIN track t ON lh.track_id = t.track_id
+                    INNER JOIN genre g ON t.genre_id = g.genre_id
+              GROUP BY ua.user_id
+                     , g.genre_id
+           ) a
+     WHERE a.ranking = 1
+                         )
+SELECT fg1.user_id
+     , g.name      AS favorite_genre
+     , fg2.user_id AS same_genre_user_id
+  FROM favorite_genre fg1
+       INNER JOIN favorite_genre fg2 ON fg1.genre_id = fg2.genre_id AND fg1.user_id <> fg2.user_id
+       INNER JOIN genre g ON fg1.genre_id = g.genre_id
+ WHERE fg1.user_id < fg2.user_id;
+
+
+-- Part 8: DML -- TRANSACTION 활용 추가하기
 -- 문제 8-1: 모든 트랙의 play_count를 10% 증가시키세요.
 -- 문제 8-2: 'Free' 요금제 사용자들의 구독을 'Basic'으로 업그레이드하세요.
 -- 문제 8-3: 1년 이상 청취 기록이 없는 사용자의 is_active를 FALSE로 변경하세요. (상관 서브쿼리 사용)
 -- 문제 8-4: 2023년 이전의 청취 기록을 삭제하세요.
 -- 문제 8-5: 트랙이 하나도 없는 플레이리스트를 삭제하세요.
 -- 문제 8-6: 만료된 구독 정보를 삭제하세요. (end_date < CURRENT_DATE - INTERVAL '1 year')
+
 
 ---
 -- Part 9: Aggregates
@@ -634,3 +1009,25 @@ HAVING COUNT(*) >= 10;
 -- 문제 9-2: 2024년에 생성된 플레이리스트와 2024년에 발매된 앨범의 이름을 모두 조회하세요.
 -- 문제 9-3: Premium 구독자이면서 최근 7일간 활동한 사용자를 찾으세요.
 -- 문제 9-4: 플레이리스트에는 있지만 아직 한 번도 재생하지 않은 트랙을 찾으세요.
+
+-- 문제 5-28: user_account와 artist 테이블을 사용하여 모든 사용자와 아티스트의 이름을 조회하세요.
+SELECT username AS name
+  FROM user_account
+ UNION
+SELECT name AS name
+  FROM artist;
+
+-- 문제 5-29: 2024년 10월에 생성된 플레이리스트와 발매된 앨범을 모두 조회하세요. (답이 안나오므로 INSERT 필요함 추후 수정해야함)
+SELECT 'Playlist' AS type
+     , name
+     , created_at
+  FROM playlist
+ WHERE created_at >= '2024-10-01'
+   AND created_at < '2024-11-01'
+ UNION ALL
+SELECT 'Album' AS type
+     , title   AS name
+     , created_at
+  FROM album
+ WHERE created_at >= '2024-10-01'
+   AND created_at < '2024-11-01';
