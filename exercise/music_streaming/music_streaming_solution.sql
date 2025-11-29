@@ -19,6 +19,14 @@ SET search_path TO music_streaming, public;
 -- description: TEXT
 -- created_at: TIMESTAMP, 기본값은 현재 시간
 
+CREATE TABLE genre
+(
+  genre_id    SERIAL PRIMARY KEY,
+  name        VARCHAR(50) NOT NULL,
+  description TEXT,
+  created_at  TIMESTAMP DEFAULT NOW()
+);
+
 
 -- 문제 1-2: artist 테이블을 생성하세요.
 
@@ -28,6 +36,15 @@ SET search_path TO music_streaming, public;
 -- country: VARCHAR(50)
 -- debut_year: INTEGER
 -- created_at: TIMESTAMP, 기본값 CURRENT_TIMESTAMP
+
+CREATE TABLE artist
+(
+  artist_id  SERIAL PRIMARY KEY,
+  name       VARCHAR(100) NOT NULL,
+  country    VARCHAR(50),
+  debut_year INTEGER,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 
 -- 문제 1-4: user_account 테이블을 생성하세요.
@@ -41,6 +58,17 @@ SET search_path TO music_streaming, public;
 -- created_at: TIMESTAMP, 기본값 NOW()
 -- is_active: BOOLEAN, 기본값 TRUE
 
+CREATE TABLE user_account
+(
+  user_id    SERIAL PRIMARY KEY,
+  email      VARCHAR(100) UNIQUE NOT NULL,
+  username   VARCHAR(50) UNIQUE  NOT NULL,
+  birth_date DATE,
+  country    VARCHAR(50),
+  created_at TIMESTAMP DEFAULT NOW(),
+  is_active  BOOLEAN   DEFAULT TRUE
+);
+
 
 -- 문제 1-5: subscription_plan 테이블을 생성하세요.
 
@@ -50,6 +78,17 @@ SET search_path TO music_streaming, public;
 -- monthly_price: NUMERIC(5,2), CHECK (>= 0)
 -- max_offline_downloads: INTEGER
 -- ad_free: BOOLEAN
+
+CREATE TABLE subscription_plan
+(
+  plan_id               SERIAL PRIMARY KEY,
+  plan_name             VARCHAR(20),
+  monthly_price         NUMERIC(5, 2),
+  max_offline_downloads INTEGER,
+  ad_free               BOOLEAN,
+  CONSTRAINT plan_name_check CHECK (plan_name IN ('free', 'basic', 'premium')),
+  CONSTRAINT monthly_price_check CHECK ( monthly_price >= 0)
+);
 
 
 -- 문제 1-6: album 테이블을 생성하세요.
@@ -62,11 +101,23 @@ SET search_path TO music_streaming, public;
 -- total_tracks: SMALLINT
 -- created_at: TIMESTAMP
 
+CREATE TABLE album
+(
+  album_id     SERIAL PRIMARY KEY,
+  title        VARCHAR(200) NOT NULL,
+  artist_id    INTEGER,
+  release_date DATE,
+  total_tracks SMALLINT,
+  created_at   TIMESTAMP
+);
+
 
 -- 문제 1-7: album 테이블에 외래키 제약조건을 추가하세요. (album 테이블을 수정)
 -- artist_id가 artist 테이블의 artist_id를 참조하도록
 -- ON DELETE CASCADE 설정
 
+ALTER TABLE album
+  ADD CONSTRAINT album_artist_id_fk FOREIGN KEY (artist_id) REFERENCES artist (artist_id) ON DELETE CASCADE;
 
 -- 문제 1-8: track 테이블을 생성하세요.
 
@@ -80,6 +131,20 @@ SET search_path TO music_streaming, public;
 -- play_count: BIGINT, 기본값 0
 -- created_at: TIMESTAMP
 
+CREATE TABLE track
+(
+  track_id         SERIAL PRIMARY KEY,
+  title            VARCHAR(200) NOT NULL,
+  album_id         INTEGER,
+  genre_id         INTEGER,
+  duration_seconds INTEGER,
+  track_number     SMALLINT,
+  play_count       BIGINT DEFAULT 0,
+  created_at       TIMESTAMP,
+  CONSTRAINT track_album_id_fk FOREIGN KEY (album_id) REFERENCES album (album_id) ON DELETE CASCADE,
+  CONSTRAINT track_genre_id_fk FOREIGN KEY (genre_id) REFERENCES genre (genre_id) ON DELETE SET NULL,
+  CONSTRAINT duration_seconds_check CHECK (duration_seconds > 0)
+);
 
 -- 문제 1-9: user_subscription 테이블을 생성하세요.
 
@@ -91,6 +156,19 @@ SET search_path TO music_streaming, public;
 -- end_date: DATE
 -- is_active: BOOLEAN, 기본값 TRUE
 -- CHECK: end_date > start_date
+
+CREATE TABLE user_subscription
+(
+  subscription_id SERIAL PRIMARY KEY,
+  user_id         INTEGER,
+  plan_id         INTEGER,
+  start_date      DATE NOT NULL,
+  end_date        DATE,
+  is_active       BOOLEAN DEFAULT TRUE,
+  CONSTRAINT user_sub_user_id_fk FOREIGN KEY (user_id) REFERENCES user_account (user_id) ON DELETE CASCADE,
+  CONSTRAINT user_sub_plan_id_fk FOREIGN KEY (plan_id) REFERENCES subscription_plan (plan_id),
+  CONSTRAINT start_end_date_check CHECK (end_date > start_date)
+);
 
 
 -- 문제 1-10: playlist 테이블을 생성하세요.
@@ -104,6 +182,18 @@ SET search_path TO music_streaming, public;
 -- created_at: TIMESTAMP
 -- updated_at: TIMESTAMP
 
+CREATE TABLE playlist
+(
+  playlist_id SERIAL PRIMARY KEY,
+  user_id     INTEGER,
+  name        VARCHAR(100) NOT NULL,
+  description TEXT,
+  is_public   BOOLEAN DEFAULT FALSE,
+  created_at  TIMESTAMP,
+  updated_at  TIMESTAMP,
+  CONSTRAINT playlist_user_id_fk FOREIGN KEY (user_id) REFERENCES user_account (user_id)
+);
+
 
 -- 문제 1-11: playlist_track 테이블을 생성하세요. (플레이리스트와 트랙의 다대다 관계)
 
@@ -113,6 +203,17 @@ SET search_path TO music_streaming, public;
 -- added_at: TIMESTAMP, 기본값 NOW()
 -- position: INTEGER (플레이리스트 내 순서)
 -- 복합 기본키: (playlist_id, track_id)
+
+CREATE TABLE playlist_track
+(
+  playlist_id INTEGER,
+  track_id    INTEGER,
+  added_at    TIMESTAMP DEFAULT NOW(),
+  position    INTEGER,
+  PRIMARY KEY (playlist_id, track_id),
+  CONSTRAINT playlist_track_playlist_id_fk FOREIGN KEY (playlist_id) REFERENCES playlist (playlist_id),
+  CONSTRAINT playlist_track_track_id_fk FOREIGN KEY (track_id) REFERENCES track (track_id)
+);
 
 
 -- 문제 1-12: listening_history 테이블을 생성하세요.
@@ -125,6 +226,18 @@ SET search_path TO music_streaming, public;
 -- listen_duration_seconds: INTEGER (실제 들은 시간)
 -- completed: BOOLEAN (곡을 끝까지 들었는지)
 
+CREATE TABLE listening_history
+(
+  history_id              SERIAL PRIMARY KEY,
+  user_id                 INTEGER,
+  track_id                INTEGER,
+  played_at               TIMESTAMP NOT NULL,
+  listen_duration_seconds INTEGER,
+  completed               BOOLEAN,
+  CONSTRAINT listening_history_user_id_fk FOREIGN KEY (user_id) REFERENCES user_account (user_id),
+  CONSTRAINT listening_history_track_id_fk FOREIGN KEY (track_id) REFERENCES track (track_id)
+);
+
 
 -- 문제 1-13: artist_follower 테이블을 생성하세요.
 
@@ -134,14 +247,77 @@ SET search_path TO music_streaming, public;
 -- followed_at: TIMESTAMP
 -- 복합 기본키: (user_id, artist_id)
 
+CREATE TABLE artist_follower
+(
+  user_id     INTEGER,
+  artist_id   INTEGER,
+  followed_at TIMESTAMP,
+  PRIMARY KEY (user_id, artist_id),
+  CONSTRAINT artist_follower_user_id_fk FOREIGN KEY (user_id) REFERENCES user_account (user_id),
+  CONSTRAINT artist_follower_artist_id_fk FOREIGN KEY (artist_id) REFERENCES artist (artist_id)
+);
+
 
 -- 2. 데이터 삽입
 -- 문제 2-1: 다음 표의 데이터를 genre 테이블에 삽입하세요. (8개 장르)
+INSERT
+  INTO genre(name, description, created_at)
+VALUES ('Pop', 'Popular mainstream music with catchy melodies', '2024-01-01 10:00:00')
+     , ('Rock', 'Guitar-driven music with strong beats', '2024-01-01 10:00:00')
+     , ('Jazz', 'Improvisational music with complex harmonies', '2024-01-01 10:00:00')
+     , ('Classical', 'Traditional orchestral and chamber music', '2024-01-01 10:00:00')
+     , ('Hip Hop', 'Rhythmic music with rap vocals', '2024-01-01 10:00:00')
+     , ('Electronic', 'Synthesizer and computer-generated music', '2024-01-01 10:00:00')
+     , ('R&B', 'Rhythm and blues with soulful vocals', '2024-01-01 10:00:00')
+     , ('Country', 'American folk music with storytelling lyrics', '2024-01-01 10:00:00');
+
+
 -- 문제 2-2: 다음 표의 데이터를 subscription_plan 테이블에 삽입하세요. (3개 요금제)
+INSERT
+  INTO subscription_plan(plan_name, monthly_price, max_offline_downloads, ad_free)
+VALUES ('free', 0.00, 0, FALSE)
+     , ('basic', 4.99, 10, FALSE)
+     , ('premium', 9.99, 999, TRUE);
+
+
 -- 문제 2-3: 다음 표의 아티스트 5명을 artist 테이블에 삽입하세요.
+INSERT
+  INTO artist(name, country, debut_year, created_at)
+VALUES ('The Beatles', 'UK', 1960, '2024-01-15 09:00:00')
+     , ('BTS', 'South Korea', 2013, '2024-01-15 09:30:00')
+     , ('Taylor Swift', 'USA', 2006, '2024-01-15 10:00:00')
+     , ('Ed Sheeran', 'UK', 2011, '2024-01-15 10:30:00')
+     , ('Billie Eilish', 'USA', 2015, '2024-01-15 11:00:00');
+
+
 -- 문제 2-4: 다음 표의 사용자 5명을 user_account 테이블에 삽입하세요.
+INSERT
+  INTO user_account(email, username, birth_date, country, created_at, is_active)
+VALUES ('john.doe@gmail.com', 'john_music', '1990-05-15', 'USA', '2024-01-01 08:00:00', TRUE)
+     , ('sarah.kim@naver.com', 'sarah_k', '1995-08-22', 'South Korea', '2024-01-05 10:30:00', TRUE)
+     , ('mike.wilson@yahoo.com', 'mike_w', '1988-03-10', 'UK', '2024-02-10 14:20:00', TRUE)
+     , ('emma.brown@gmail.com', 'emma_b', '1992-11-28', 'Canada', '2024-02-15 09:45:00', TRUE)
+     , ('david.lee@outlook.com', 'david_music', '1985-07-03', 'South Korea', '2024-03-01 11:00:00', TRUE);
+
+
 -- 문제 2-5: 다음 표의 앨범 3개를 album 테이블에 삽입하세요.
+INSERT
+  INTO album(title, artist_id, release_date, total_tracks, created_at)
+VALUES ('Abbey Road', 1, '1969-09-26', 17, '2024-01-20 10:00:00')
+     , ('Map of the Soul: 7', 2, '2020-02-21', 20, '2024-01-21 11:00:00')
+     , ('1989', 3, '2014-10-27', 13, '2024-01-22 12:00:00');
+
+
 -- 문제 2-6: 다음 표의 트랙 5개를 track 테이블에 삽입하세요.
+INSERT
+  INTO track(title, album_id, genre_id, duration_seconds, track_number, play_count, created_at)
+VALUES ('Come Together', 1, 2, 259, 1, 15420, '2024-01-20 10:00:00')
+     , ('Something', 1, 2, 182, 2, 12350, '2024-01-20 10:05:00')
+     , ('ON', 2, 5, 241, 1, 45000, '2024-01-21 11:00:00')
+     , ('Shake It Off', 3, 1, 219, 1, 67000, '2024-01-22 12:00:00')
+     , ('Blank Space', 3, 1, 231, 2, 71000, '2024-01-22 12:05:00');
+
+
 -- 문제 2-7: 아래 스크립트를 실행하여 나머지 데이터를 삽입하세요.
 -- ============================================
 -- 음악 스트리밍 서비스 샘플 데이터
@@ -150,38 +326,213 @@ SET search_path TO music_streaming, public;
 
 -- 3. 데이터 조회
 -- 문제 3-1: 모든 장르의 이름을 알파벳 순으로 조회하세요.
+SELECT name
+  FROM genre
+ ORDER BY name;
+
+
 -- 문제 3-2: 한국 출신 아티스트들의 이름과 데뷔 연도를 조회하세요.
+SELECT name
+     , debut_year
+  FROM artist
+ WHERE country = 'South Korea';
+
+
 -- 문제 3-3: 가격이 $5 이상인 구독 요금제를 조회하세요.
+SELECT *
+  FROM subscription_plan
+ WHERE monthly_price >= 5;
+
+
 -- 문제 3-4: 2020년부터 발매된 앨범의 제목과 발매일을 조회하세요.
--- 문제 3-5: 재생 시간이 3분(180초) 이상인 트랙들의 제목과 재생 시간을 조회하세요. 힌트: CONCAT() 또는 TO_CHAR() 사용하면 '분:초' 형식으로 표시할 수 있음
+SELECT title
+     , release_date
+  FROM album
+ WHERE release_date >= '2020-01-01';
+
+-- 문제 3-5: 재생 시간이 3분(180초) 이상인 트랙들의 제목과 재생 시간을 조회하세요.
+-- 힌트: CONCAT() 또는 TO_CHAR() 사용하면 '분:초' 형식으로 표시할 수 있음
+SELECT title
+     , CONCAT((duration_seconds / 60), ':', (duration_seconds % 60)) AS 재생시간
+  FROM track
+ WHERE duration_seconds >= 180;
+
+-- TO_CHAR 사용
+SELECT title
+     , TO_CHAR((duration_seconds || ' seconds')::INTERVAL, 'MI:SS') AS 재생시간
+  FROM track
+ WHERE duration_seconds >= 180;
+
+-- LPAD 사용
+SELECT title
+     , CONCAT(duration_seconds / 60, ':', LPAD((duration_seconds % 60)::TEXT, 2, '0')) AS 재생시간
+  FROM track
+ WHERE duration_seconds >= 180;
+
+-- 조건문으로 포맷 개선
+SELECT title
+     , CONCAT(duration_seconds / 60, ':', CASE
+                                            WHEN duration_seconds % 60 < 10 THEN '0' || (duration_seconds % 60)
+                                            ELSE (duration_seconds % 60)::TEXT END) AS 재생시간
+  FROM track
+ WHERE duration_seconds >= 180;
+
+
 -- 문제 3-6: 이메일 도메인이 'gmail.com'인 사용자를 찾으세요.
+SELECT *
+  FROM user_account
+ WHERE email LIKE '%@gmail.com';
+
+
 -- 문제 3-7: 트랙 제목에 'love'가 포함된 모든 곡을 찾으세요. (대소문자 구분 없이)
+SELECT *
+  FROM track
+ WHERE LOWER(title) LIKE LOWER('%love%');
+
+-- PostgreSQL 전용
+SELECT *
+  FROM track
+ WHERE title ILIKE '%love%';
+
+
 -- 문제 3-8: 1990년대(1990-1999)에 데뷔한 아티스트를 찾으세요.
+SELECT *
+  FROM artist
+ WHERE debut_year BETWEEN 1990 AND 1999;
+
+
 -- 문제 3-9: 공개 플레이리스트만 조회하되, 최신 생성 순으로 정렬하세요.
+SELECT *
+  FROM playlist
+ WHERE is_public = TRUE
+ ORDER BY created_at DESC;
+
+
 -- 문제 3-10: 구독 상태가 활성화된 유저를 조회하세요.
+SELECT *
+  FROM user_subscription
+ WHERE is_active = TRUE
+   AND (end_date IS NULL OR end_date > CURRENT_DATE);
+
+
 -- 문제 3-11: 2024년 11월에 생성된 플레이리스트를 찾으세요.
+SELECT *
+  FROM playlist
+ WHERE created_at >= '2024-11-01'
+   AND created_at < '2024-12-01';
 
 
 -- 4. 데이터 집계
 -- 문제 4-1: 전체 트랙 수를 세세요.
+SELECT COUNT(*)
+  FROM track;
+
+
 -- 문제 4-2: 모든 트랙의 평균 재생 시간(초)을 소수점 첫째 자리에서 반올림하여 구하세요.
+SELECT ROUND(AVG(duration_seconds))
+  FROM track;
+
+
 -- 문제 4-3: 가장 긴 트랙과 가장 짧은 트랙의 재생 시간을 조회하세요.
+SELECT MAX(duration_seconds) AS 가장_긴_트랙
+     , MIN(duration_seconds) AS 가장_짧은_트랙
+  FROM track;
+
+
 -- 문제 4-4: 장르별로 트랙 수를 세고, 트랙 수가 많은 순으로 정렬하세요.
+SELECT genre_id
+     , COUNT(*) AS count
+  FROM track
+ GROUP BY genre_id
+ ORDER BY count DESC;
+
+
 -- 문제 4-5: 아티스트별로 발매한 앨범 수를 이름을 포함하여 조회하세요.
+SELECT ar.artist_id
+     , ar.name
+     , COUNT(*) AS album_count
+  FROM album al
+       INNER JOIN artist ar ON al.artist_id = ar.artist_id
+ GROUP BY ar.artist_id
+        , ar.name
+ ORDER BY album_count;
+
+
 -- 문제 4-6: 사용자별 플레이리스트 수를 세되, 2개 이상 가진 사용자만 표시하세요.
+SELECT user_id
+     , COUNT(*) AS playlist_count
+  FROM playlist
+ GROUP BY user_id
+HAVING COUNT(*) >= 2;
+
+
 -- 문제 4-7: 각 아티스트의 총 재생 횟수를 계산하세요.
+SELECT a.artist_id
+     , SUM(t.play_count)
+  FROM album a
+       INNER JOIN track t ON a.album_id = t.album_id
+ GROUP BY a.artist_id;
+
+
 -- 문제 4-8: 장르별 평균 트랙 길이를 분 단위로 조회하세요. (소수점 2자리까지 표현)
--- 문제 4-9: 월별 신규 사용자 수를 조회하세요. (2024년 기준) 힌트: TO_CHAR(날짜_컬럼명, 'YYYY-MM') 사용
--- 문제 4-10: 아티스트별, 장르별 트랙 수의 소계와 총계를 조회하세요. 힌트: ROLLUP
--- 문제 4-11: 요금제별, 국가별 구독자 수를 조회하세요. 힌트: CUBE, is_active = TRUE 조건 사용
+SELECT genre_id
+     , ROUND(AVG(duration_seconds) / 60, 2)
+  FROM track
+ GROUP BY genre_id;
+
+
+-- 문제 4-9: 월별 신규 사용자 수를 조회하세요. (2024년 기준)
+-- 힌트: TO_CHAR(날짜_컬럼명, 'YYYY-MM') 사용
+SELECT TO_CHAR(created_at, 'YYYY-MM') AS 월
+     , COUNT(*)                       AS 신규_사용자수
+  FROM user_account
+ WHERE created_at >= '2024-01-01'
+   AND created_at < '2025-01-01'
+ GROUP BY TO_CHAR(created_at, 'YYYY-MM')
+ ORDER BY 월;
+
+
+-- 문제 4-10: 아티스트별, 장르별 트랙 수를 조회하되, ROLLUP을 사용하여 소계와 총계를 포함하세요.
+SELECT a.artist_id
+     , t.genre_id
+     , COUNT(*) AS track_count
+  FROM track t
+       INNER JOIN album a ON t.album_id = a.album_id
+ GROUP BY ROLLUP (a.artist_id
+     , t.genre_id)
+ ORDER BY a.artist_id NULLS LAST
+        , t.genre_id NULLS LAST;
+
+
+-- 문제 4-11: 요금제별, 국가별 구독자 수를 CUBE를 사용하여 조회하세요.
+SELECT us.plan_id
+     , ua.country
+     , COUNT(*)
+  FROM user_account ua
+       INNER JOIN user_subscription us ON ua.user_id = us.user_id
+ WHERE us.is_active = TRUE
+ GROUP BY CUBE (us.plan_id
+     , ua.country)
+ ORDER BY us.plan_id
+        , ua.country;
+
+
 -- 문제 4-12: 각 사용자의 청취 기록에서:
 -- 1. 총 청취 시간(초)
 -- 2. 들은 곡 수
 -- 3. 완주율 (completed = TRUE인 비율)
 -- 을 계산하되, 10곡 이상 들은 사용자만 표시하세요.
 
--- 힌트 1: TRUE는 1, FALSE는 0 을 나타냄
--- 힌트 2: PostgreSQL에서는 BOOLEAN을 :: INTEGER를 사용해 간단히 변환 가능
+-- 힌트 1: TRUE를 1, FALSE를 0
+-- 힌트 2: PostgreSQL에서는 Boolean을 ::INTEGER 을 사용해 간단히 변환 가능
+
+SELECT user_id
+     , SUM(listen_duration_seconds)
+     , COUNT(*)
+     , ROUND(AVG(completed::INTEGER) * 100, 2)
+  FROM listening_history
+ GROUP BY user_id
+HAVING COUNT(*) >= 10;
 
 
 -- 5. 테이블 종합
